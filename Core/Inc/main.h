@@ -60,11 +60,11 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define LED_Pin GPIO_PIN_13
 #define LED_GPIO_Port GPIOC
-#define AnalogIn_Pin GPIO_PIN_0
-#define AnalogIn_GPIO_Port GPIOA
-#define DirectionIn_Pin GPIO_PIN_1
-#define DirectionIn_GPIO_Port GPIOA
-#define DirectionIn_EXTI_IRQn EXTI1_IRQn
+#define Analog_IN_Pin GPIO_PIN_0
+#define Analog_IN_GPIO_Port GPIOA
+#define Direction_IN_Pin GPIO_PIN_1
+#define Direction_IN_GPIO_Port GPIOA
+#define Direction_IN_EXTI_IRQn EXTI1_IRQn
 #define A_OUT1_Pin GPIO_PIN_2
 #define A_OUT1_GPIO_Port GPIOA
 #define A_OUT2_Pin GPIO_PIN_3
@@ -73,8 +73,6 @@ void Error_Handler(void);
 #define B_OUT1_GPIO_Port GPIOA
 #define B_OUT2_Pin GPIO_PIN_5
 #define B_OUT2_GPIO_Port GPIOA
-#define Enable_OUT_Pin GPIO_PIN_6
-#define Enable_OUT_GPIO_Port GPIOA
 #define Enable_IN_Pin GPIO_PIN_0
 #define Enable_IN_GPIO_Port GPIOB
 #define Enable_IN_EXTI_IRQn EXTI0_IRQn
@@ -83,6 +81,10 @@ void Error_Handler(void);
 #define PWM_B_Pin GPIO_PIN_9
 #define PWM_B_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
+
+#define DIR_CW 0
+#define DIR_CCW 1
+
 
 /* USER CODE END Private defines */
 

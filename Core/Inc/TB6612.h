@@ -12,8 +12,7 @@
 #include <stdint.h>
 #include "stm32f1xx_hal.h"
 
-#define DIR_CW 0
-#define DIR_CCW 1
+
 #define TB6612_DIR_PORT_A 0
 #define TB6612_DIR_PORT_B 1
 

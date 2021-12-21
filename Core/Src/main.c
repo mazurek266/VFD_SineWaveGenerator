@@ -28,6 +28,9 @@
 /* USER CODE BEGIN Includes */
 #include "TB6612.h"
 #include "LookUpTable.h"
+#include <math.h>
+#include  <stdlib.h>
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,6 +43,12 @@
 
 #define CHANNEL_A_INIT_DIR DIR_CW
 #define CHANNEL_B_INIT_DIR DIR_CW
+
+#define ADC_SCALE_RATIO ADC_RAW_TO_VOLT * HZ_PER_MVOLT
+
+#define PHASE_U_START_POINT (45 - 1)
+#define PHASE_V_START_120_DEG (45 + 120 - 1)
+#define PHASE_V_START_240_DEG (105 - 1)
 
 /* USER CODE END PD */
 
@@ -54,11 +63,18 @@
 
 uint8_t uPhaseStep = 0;
 uint8_t vPhaseStep = 0;
-uint16_t phaseUOffset = (45-1);
-uint16_t phaseVOffset = (45+120-1);//105-1 for 240deg phase shift
+uint16_t phaseUOffset = PHASE_U_START_POINT;
+uint16_t phaseVOffset = PHASE_V_START_120_DEG;
 uint8_t channelAState = CHANNEL_A_INIT_DIR;
 uint8_t channelBState = CHANNEL_B_INIT_DIR;
+
 uint32_t adcDMABuffer = 0;
+float lastFreqValue = 0.0f;
+float computedFrequency = 0.0f;
+uint16_t computedARRValue = 0;
+
+bool motorDir = DIR_CCW;
+bool vfdEnabled = 0;
 
 /* USER CODE END PV */
 
@@ -76,32 +92,82 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	if (htim->Instance == TIM2)
 	{
 
-			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,SineLookUpTable[uPhaseStep]);
-			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2,SineLookUpTable[vPhaseStep]);
+			if (vfdEnabled == true)
+			{
 
-				if (uPhaseStep == (N_SINE_POINTS - 1))
-				{
-					uPhaseStep = 0;
-					//TB6612_ToggleDirection(TB6612_DIR_PORT_A, &channelAState);
-					HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
-				}
+				__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,SineLookUpTable[uPhaseStep]);
+				__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2,SineLookUpTable[vPhaseStep]);
 
-				if (vPhaseStep == (N_SINE_POINTS - 1))
-				{
-					vPhaseStep = 0;
-					//TB6612_ToggleDirection(TB6612_DIR_PORT_B, &channelBState);
-					HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
-				}
-				uPhaseStep++;
-				vPhaseStep++;
+					if (uPhaseStep == (N_SINE_POINTS - 1))
+						uPhaseStep = 0;
+
+					if (vPhaseStep == (N_SINE_POINTS - 1))
+						vPhaseStep = 0;
+
+					uPhaseStep++;
+					vPhaseStep++;
+			}
 	}
+	if (htim->Instance == TIM3)
+	{
+
+			if (vfdEnabled == true)
+			{
+
+				computedFrequency = adcDMABuffer * ADC_SCALE_RATIO;
+
+						if (abs( computedFrequency - lastFreqValue) >= 1.0f)
+						{
+							computedARRValue = roundf((18000000/computedFrequency) - 1);
+							__HAL_TIM_SET_AUTORELOAD(&htim2,computedARRValue);
+						}
+
+				lastFreqValue = computedFrequency;
+			}
+	}
+
 }
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 
+		if (GPIO_Pin == Direction_IN_Pin)
+		{
 
+				switch (motorDir)
+				{
+					case DIR_CW:
 
+							motorDir = DIR_CCW;
 
+							uPhaseStep = PHASE_U_START_POINT;
+							vPhaseStep = PHASE_V_START_240_DEG;
+
+							__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,SineLookUpTable[uPhaseStep]);
+							__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2,SineLookUpTable[vPhaseStep]);
+
+					break;
+
+					case DIR_CCW:
+
+							motorDir = DIR_CW;
+
+							uPhaseStep = PHASE_U_START_POINT;
+							vPhaseStep = PHASE_V_START_120_DEG;
+
+							__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,SineLookUpTable[uPhaseStep]);
+							__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2,SineLookUpTable[vPhaseStep]);
+
+					break;
+
+				}
+
+		}
+		if (GPIO_Pin == Enable_IN_Pin)
+		{
+
+			vfdEnabled = !vfdEnabled;
+			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		}
 
 }
 
@@ -165,7 +231,7 @@ int main(void)
 
 
   HAL_TIM_Base_Start_IT(&htim2);
-
+  HAL_TIM_Base_Start_IT(&htim3);
   /* USER CODE END 2 */
 
   /* Infinite loop */

@@ -35,6 +35,9 @@ extern ADC_HandleTypeDef hadc1;
 
 /* USER CODE BEGIN Private defines */
 
+#define ADC_RAW_TO_VOLT 0.8059f
+#define HZ_PER_MVOLT 0.0506f
+
 /* USER CODE END Private defines */
 
 void MX_ADC1_Init(void);
