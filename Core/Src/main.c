@@ -26,10 +26,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "TB6612.h"
+#include "H_Bridge.h"
 #include "LookUpTable.h"
 #include <math.h>
-#include  <stdlib.h>
+#include <stdlib.h>
 #include <stdbool.h>
 /* USER CODE END Includes */
 
@@ -41,14 +41,20 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define CHANNEL_A_INIT_DIR DIR_CW
-#define CHANNEL_B_INIT_DIR DIR_CW
+/* Since the sine wave is shifted by the Hbridge by half the real starting point of the output sine wave out of the H bridge is also shifted.
 
-#define ADC_SCALE_RATIO ADC_RAW_TO_VOLT * HZ_PER_MVOLT
+sample 		0 - V_MOTOR-
+sample (90-1) - V_MOTOR+
 
+sample (45-1) - GND2
+
+Signals V_MOTOR-, V_MOTOR+, GND2 are shown in schematic.png in main folder.
+
+*/
 #define PHASE_U_START_POINT (45 - 1)
-#define PHASE_V_START_120_DEG (45 + 120 - 1)
-#define PHASE_V_START_240_DEG (105 - 1)
+
+#define PHASE_V_START_120_DEG (45 + 120 - 1)	//Second sine wave start point shiffted by 120 samples of the LUT which equals 120 [deg] phase shift, between 1 and 2 channel.
+#define PHASE_V_START_240_DEG (105 - 1)			//Second sine wave start point shiffted by -120 samples (45-120= -75 => 180-75= 105) of the LUT which equals -120 [deg] phase shift, between 1 and 2 channel.
 
 /* USER CODE END PD */
 
@@ -63,18 +69,15 @@
 
 uint8_t uPhaseStep = 0;
 uint8_t vPhaseStep = 0;
-uint16_t phaseUOffset = PHASE_U_START_POINT;
-uint16_t phaseVOffset = PHASE_V_START_120_DEG;
 uint8_t channelAState = CHANNEL_A_INIT_DIR;
 uint8_t channelBState = CHANNEL_B_INIT_DIR;
 
 uint32_t adcDMABuffer = 0;
-float lastFreqValue = 0.0f;
 float computedFrequency = 0.0f;
 uint16_t computedARRValue = 0;
 
-bool motorDir = DIR_CCW;
-bool vfdEnabled = 0;
+Direction motorDir = DIR_CCW;
+VFDState vfdStatus = VFD_OFF;
 
 /* USER CODE END PV */
 
@@ -92,7 +95,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	if (htim->Instance == TIM2)
 	{
 
-			if (vfdEnabled == true)
+			if (vfdStatus == VFD_ON)
 			{
 
 				__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,SineLookUpTable[uPhaseStep]);
@@ -111,18 +114,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	if (htim->Instance == TIM3)
 	{
 
-			if (vfdEnabled == true)
+			if (vfdStatus == VFD_ON)
 			{
 
-				computedFrequency = adcDMABuffer * ADC_SCALE_RATIO;
+				computedFrequency = adcDMABuffer * ADC_SCALE_RATIO;		// Scaling Measured Voltage 0-3.3[V] to 2-167[Hz].
 
-						if (abs( computedFrequency - lastFreqValue) >= 1.0f)
-						{
-							computedARRValue = roundf((18000000/computedFrequency) - 1);
-							__HAL_TIM_SET_AUTORELOAD(&htim2,computedARRValue);
-						}
+					if ( computedFrequency  >= 2.0f)	// Checking if frequency is greater than 2[Hz] to avoid carrier timer ARR value being greater than 65535.
+					{
+						computedARRValue = roundf((18000000/computedFrequency* F_OUT_TO_F_CARRIER) - 1);	//Computing the Carrier frequency for a given output frequency F_OUT_TO_F_CARRIER being number of LUT samples.
+						__HAL_TIM_SET_AUTORELOAD(&htim2,computedARRValue);
+					}
 
-				lastFreqValue = computedFrequency;
 			}
 	}
 
@@ -133,31 +135,25 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		if (GPIO_Pin == Direction_IN_Pin)
 		{
 
-				switch (motorDir)
+				if (HAL_GPIO_ReadPin(Direction_IN_GPIO_Port, Direction_IN_Pin) == GPIO_PIN_SET)
 				{
-					case DIR_CW:
 
-							motorDir = DIR_CCW;
+					uPhaseStep = PHASE_U_START_POINT;
+					vPhaseStep = PHASE_V_START_240_DEG;
 
-							uPhaseStep = PHASE_U_START_POINT;
-							vPhaseStep = PHASE_V_START_240_DEG;
+					__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,SineLookUpTable[uPhaseStep]);
+					__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2,SineLookUpTable[vPhaseStep]);
 
-							__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,SineLookUpTable[uPhaseStep]);
-							__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2,SineLookUpTable[vPhaseStep]);
+				}
+				else
+				if (HAL_GPIO_ReadPin(Direction_IN_GPIO_Port, Direction_IN_Pin) == GPIO_PIN_RESET)
+				{
 
-					break;
+					uPhaseStep = PHASE_U_START_POINT;
+					vPhaseStep = PHASE_V_START_120_DEG;
 
-					case DIR_CCW:
-
-							motorDir = DIR_CW;
-
-							uPhaseStep = PHASE_U_START_POINT;
-							vPhaseStep = PHASE_V_START_120_DEG;
-
-							__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,SineLookUpTable[uPhaseStep]);
-							__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2,SineLookUpTable[vPhaseStep]);
-
-					break;
+					__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,SineLookUpTable[uPhaseStep]);
+					__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2,SineLookUpTable[vPhaseStep]);
 
 				}
 
@@ -165,8 +161,18 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		if (GPIO_Pin == Enable_IN_Pin)
 		{
 
-			vfdEnabled = !vfdEnabled;
-			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+				if (HAL_GPIO_ReadPin(Enable_IN_GPIO_Port, Enable_IN_Pin) == GPIO_PIN_SET)
+				{
+					vfdStatus = VFD_ON;
+					HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+				}
+				else
+				if (HAL_GPIO_ReadPin(Enable_IN_GPIO_Port, Enable_IN_Pin) == GPIO_PIN_RESET)
+				{
+					vfdStatus = VFD_OFF;
+					HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+				}
+
 		}
 
 }
@@ -216,19 +222,18 @@ int main(void)
   HAL_ADCEx_Calibration_Start(&hadc1);
   HAL_ADC_Start_DMA(&hadc1, &adcDMABuffer, 1);
 
-  TB6612_SetDirection(CHANNEL_A_INIT_DIR, TB6612_DIR_PORT_A, &channelAState);
-  TB6612_SetDirection(CHANNEL_B_INIT_DIR, TB6612_DIR_PORT_B, &channelBState);
+  H_Bridge_SetDirection(CHANNEL_A_INIT_DIR, H_BRIDGE_DIR_PORT_A, &channelAState);
+  H_Bridge_SetDirection(CHANNEL_B_INIT_DIR, H_BRIDGE_DIR_PORT_B, &channelBState);
 
-  uPhaseStep = phaseUOffset;
-  vPhaseStep = phaseVOffset;
+
+  uPhaseStep = PHASE_U_START_POINT;
+  vPhaseStep = PHASE_V_START_120_DEG;
 
   __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,SineLookUpTable[uPhaseStep]);
   __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,SineLookUpTable[vPhaseStep]);
 
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-  // ARR range 10000 - 602 (10 - 167Hz)
-
 
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim3);

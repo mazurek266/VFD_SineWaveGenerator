@@ -37,6 +37,9 @@ extern ADC_HandleTypeDef hadc1;
 
 #define ADC_RAW_TO_VOLT 0.8059f
 #define HZ_PER_MVOLT 0.0506f
+#define F_OUT_TO_F_CARRIER 180
+
+#define ADC_SCALE_RATIO ADC_RAW_TO_VOLT * HZ_PER_MVOLT
 
 /* USER CODE END Private defines */
 

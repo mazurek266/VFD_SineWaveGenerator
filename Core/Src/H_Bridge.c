@@ -1,12 +1,12 @@
-#include "TB6612.h"
+#include "H_Bridge.h"
 
 
-void TB6612_SetDirection( uint8_t dir, uint8_t dirPort, uint8_t *lastState)
+void H_Bridge_SetDirection( uint8_t dir, uint8_t dirPort, uint8_t *lastState)
 {
 
 	switch (dirPort)
 	{
-		case TB6612_DIR_PORT_A:
+		case H_BRIDGE_DIR_PORT_A:
 
 					switch (dir)
 					{
@@ -36,7 +36,7 @@ void TB6612_SetDirection( uint8_t dir, uint8_t dirPort, uint8_t *lastState)
 					}
 			break;
 
-		case TB6612_DIR_PORT_B:
+		case H_BRIDGE_DIR_PORT_B:
 
 					switch (dir)
 					{
@@ -69,13 +69,13 @@ void TB6612_SetDirection( uint8_t dir, uint8_t dirPort, uint8_t *lastState)
 	}
 }
 
-void TB6612_ToggleDirection( uint8_t dirPort, uint8_t *lastState)
+void H_Bridge_ToggleDirection( uint8_t dirPort, uint8_t *lastState)
 {
 
 
 		switch (dirPort)
 		{
-			case TB6612_DIR_PORT_A:
+			case H_BRIDGE_DIR_PORT_A:
 
 						switch (*lastState)
 						{
@@ -104,7 +104,7 @@ void TB6612_ToggleDirection( uint8_t dirPort, uint8_t *lastState)
 			break;
 
 
-			case TB6612_DIR_PORT_B:
+			case H_BRIDGE_DIR_PORT_B:
 
 						switch (*lastState)
 						{

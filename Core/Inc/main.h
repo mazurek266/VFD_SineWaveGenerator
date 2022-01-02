@@ -82,9 +82,12 @@ void Error_Handler(void);
 #define PWM_B_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
 
-#define DIR_CW 0
-#define DIR_CCW 1
 
+typedef enum
+{
+	VFD_OFF,
+	VFD_ON
+}VFDState;
 
 /* USER CODE END Private defines */
 
