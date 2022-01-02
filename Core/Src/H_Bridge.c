@@ -134,4 +134,3 @@ void TB6612_ToggleDirection( uint8_t dirPort, uint8_t *lastState)
 
 		}
 }
-
