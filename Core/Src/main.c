@@ -69,8 +69,8 @@ Signals V_MOTOR-, V_MOTOR+, GND2 are shown in schematic.png in main folder.
 
 uint8_t uPhaseStep = 0;
 uint8_t vPhaseStep = 0;
-uint8_t channelAState = CHANNEL_A_INIT_DIR;
-uint8_t channelBState = CHANNEL_B_INIT_DIR;
+Direction channelAState = CHANNEL_A_INIT_DIR;
+Direction channelBState = CHANNEL_B_INIT_DIR;
 
 uint32_t adcDMABuffer = 0;
 float computedFrequency = 0.0f;
@@ -121,7 +121,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 					if ( computedFrequency  >= 2.0f)	// Checking if frequency is greater than 2[Hz] to avoid carrier timer ARR value being greater than 65535.
 					{
-						computedARRValue = roundf((18000000/computedFrequency* F_OUT_TO_F_CARRIER) - 1);	//Computing the Carrier frequency for a given output frequency F_OUT_TO_F_CARRIER being number of LUT samples.
+						computedARRValue = (uint16_t)roundf((18000000/(computedFrequency* F_OUT_TO_F_CARRIER)) - 1);	//Computing the Carrier frequency for a given output frequency F_OUT_TO_F_CARRIER being number of LUT samples.
 						__HAL_TIM_SET_AUTORELOAD(&htim2,computedARRValue);
 					}
 

@@ -24,6 +24,6 @@ typedef enum
 #define CHANNEL_A_INIT_DIR DIR_CW
 #define CHANNEL_B_INIT_DIR DIR_CW
 
-void H_Bridge_SetDirection( uint8_t dir, uint8_t dirPort, uint8_t *lastState);
-void H_Bridge_ToggleDirection( uint8_t dirPort, uint8_t *lastState);
+void H_Bridge_SetDirection( uint8_t dir, uint8_t dirPort, Direction *lastState);
+void H_Bridge_ToggleDirection( uint8_t dirPort, Direction *lastState);
 #endif /* INC_TB6612_H_ */

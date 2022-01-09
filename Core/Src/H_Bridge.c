@@ -1,7 +1,7 @@
 #include "H_Bridge.h"
 
 
-void H_Bridge_SetDirection( uint8_t dir, uint8_t dirPort, uint8_t *lastState)
+void H_Bridge_SetDirection( uint8_t dir, uint8_t dirPort, Direction *lastState)
 {
 
 	switch (dirPort)
@@ -69,7 +69,7 @@ void H_Bridge_SetDirection( uint8_t dir, uint8_t dirPort, uint8_t *lastState)
 	}
 }
 
-void H_Bridge_ToggleDirection( uint8_t dirPort, uint8_t *lastState)
+void H_Bridge_ToggleDirection( uint8_t dirPort, Direction *lastState)
 {
 
 
