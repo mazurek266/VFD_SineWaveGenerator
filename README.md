@@ -10,6 +10,8 @@ The analog input uses a input signal 0-10V witch ich scaled down to the 0-3.3V r
 Schematic
 ![Screenshot](schematic.png)
 
+Board design
+![Screenshot](Board_design.png)
 
 Demonstration of working prototype:
 https://www.youtube.com/watch?v=0YkKMYZPY2g
